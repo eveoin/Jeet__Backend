@@ -10,7 +10,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Specify the full path to the data.json file
-waiting_list = 'E://py/demo/data.json'
+waiting_list = 'E:\py\demo\data.json'
 
 try:
     with open(waiting_list, 'r') as file:
@@ -26,7 +26,6 @@ if not isinstance(waiting_list, list):
 email_count = sum('Email' in item for item in waiting_list)
 print("Number of Email IDs:", email_count)
 
-
 @app.route('/test', methods=['GET'])
 def get_waiting_list():
     return jsonify({'count': len(waiting_list)})
@@ -41,13 +40,11 @@ def add_to_waiting_list():
 
     waiting_list.append({
         'Email': data['Email'],
-        # 'paymentId': data['paymentId']
+         #'paymentId': data['paymentId']
     })
 
-    with open(waiting_list_file, 'w') as file:
-        json.dump(waiting_list, file, indent=2)
 
-    return jsonify({'success': True, 'message': 'Email added successfully'})
+    return jsonify(waiting_list)
 
 
 if __name__ == '__main__':
