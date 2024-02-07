@@ -13,7 +13,7 @@ data_file_path = 'data.json'
 
 # Initialize waiting_list as an empty list
 waiting_list = []
-"""
+
 # Check if the file exists and is not empty
 if os.path.exists(data_file_path) and os.path.getsize(data_file_path) > 0:
     # Load existing data from the JSON file
@@ -23,7 +23,7 @@ if os.path.exists(data_file_path) and os.path.getsize(data_file_path) > 0:
         # Ensure the loaded data is a list
         if isinstance(loaded_data, list):
             waiting_list = loaded_data
-"""
+
 
 @app.route('/test', methods=['GET'])
 def get_waiting_list():
