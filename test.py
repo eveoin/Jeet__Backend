@@ -1,27 +1,29 @@
 import json
 import os
-
 import razorpay
-
-client = razorpay.Client(auth=("rzp_test_BqwXmtR5v1PWNh", "NnS89KiZoIfLw6briAZOnEje"))
-
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
 
-waiting_list = 'data.json'
+client = razorpay.Client(auth=("rzp_test_BqwXmtR5v1PWNh", "NnS89KiZoIfLw6briAZOnEje"))
 
+data_file_path = 'data.json'
 
-try:
-    with open(waiting_list, 'r') as file:
-        # Check if the file is not empty
-        file_content = file.read().strip()
-        waiting_list = json.loads(file_content) if file_content else []
-except (FileNotFoundError, json.JSONDecodeError):
-    waiting_list = []
+# Initialize waiting_list as an empty list
+waiting_list = []
+"""
+# Check if the file exists and is not empty
+if os.path.exists(data_file_path) and os.path.getsize(data_file_path) > 0:
+    # Load existing data from the JSON file
+    with open(data_file_path, 'r') as json_file:
+        loaded_data = json.load(json_file)
 
+        # Ensure the loaded data is a list
+        if isinstance(loaded_data, list):
+            waiting_list = loaded_data
+"""
 
 @app.route('/test', methods=['GET'])
 def get_waiting_list():
@@ -41,7 +43,10 @@ def add_to_waiting_list():
         # 'paymentId': data['paymentId']
     })
 
-    return jsonify(waiting_list)
+    # Save the updated data back to the JSON file
+    with open(data_file_path, 'w') as json_file:
+        json.dump(waiting_list, json_file, indent=2)
+    return jsonify({})
 
 
 if __name__ == '__main__':
