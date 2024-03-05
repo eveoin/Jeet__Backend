@@ -7,7 +7,8 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-client = razorpay.Client(auth=("rzp_test_BqwXmtR5v1PWNh", "NnS89KiZoIfLw6briAZOnEje"))
+#client = razorpay.Client(auth=("rzp_test_BqwXmtR5v1PWNh", "NnS89KiZoIfLw6briAZOnEje"))
+client = razorpay.Client(auth=("rzp_live_OQIeBUr1MWxTWP", "ko3OPmbJPnPpKaLq7v7734IZ"))
 
 data_file_path = 'data.json'
 
