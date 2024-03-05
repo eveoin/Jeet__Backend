@@ -16,3 +16,4 @@ python-dotenv==1.0.1
 six==1.16.0
 Werkzeug==3.0.1
 razorpay==1.4.1
+Flask-Cors==1.10.3
