@@ -26,12 +26,12 @@ if os.path.exists(data_file_path) and os.path.getsize(data_file_path) > 0:
             waiting_list = loaded_data
 
 
-@app.route('/test', methods=['GET'])
+@app.route('/api/count', methods=['GET'])
 def get_waiting_list():
     return jsonify({'count': len(waiting_list)})
 
 
-@app.route('/test', methods=['POST'])
+@app.route('/api', methods=['POST'])
 def add_to_waiting_list():
     data = request.get_json()
 
