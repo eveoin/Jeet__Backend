@@ -3,6 +3,17 @@ import json
 
 app = Flask(__name__)
 
+@app.route('/show_data', methods=['get'])
+def show_data():
+    try:
+        with open('job_apply.json', 'r') as file:
+            existing_data = json.load(file)
+
+        return jsonify(existing_data), 200
+
+    except FileNotFoundError:
+        return jsonify({"message": "No data found"}), 404
+        
 @app.route('/store_data', methods=['POST'])
 def store_data():
     data = request.get_json()
