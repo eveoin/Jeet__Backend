@@ -3,6 +3,7 @@ import json
 
 app = Flask(__name__)
 
+
 @app.route('/show_data', methods=['get'])
 def show_data():
     try:
@@ -13,7 +14,7 @@ def show_data():
 
     except FileNotFoundError:
         return jsonify({"message": "No data found"}), 404
-        
+
 @app.route('/store_data', methods=['POST'])
 def store_data():
     data = request.get_json()
