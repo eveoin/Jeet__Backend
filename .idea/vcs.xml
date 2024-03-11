@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/DeepSpace" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Jeet_Backend" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/engineering-blog-samples" vcs="Git" />
+  </component>
+</project>
