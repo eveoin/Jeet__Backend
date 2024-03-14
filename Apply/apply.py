@@ -58,7 +58,7 @@ def store_data():
     with open('job_apply.json', 'w') as file:
         json.dump(existing_data, file, indent=2)
 
-    return jsonify({"message": "Data stored successfully"}), 200
+    return jsonify({"message": "Data stored successfully..."}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
