@@ -1,39 +1,27 @@
-from flask import Flask, render_template, request, send_file
-from flask_pymongo import PyMongo
-from pymongo import MongoClient
+import os
+
+from flask import Flask, request
+import requests
 
 app = Flask(__name__)
 
+UPLOAD_FOLDER = 'uploads'
+GOOGLE_DRIVE_FOLDER = 'https://drive.google.com/drive/folders/1m_JS0-1EH0AapXJcvr4Onz68_0Q92A8B?usp=sharing'
 
-uri = 'mongodb+srv://jeetj:9FFVZMC6eU1qrson@jeetdb.trviwgp.mongodb.net/'
-client = MongoClient(uri, tlsAllowInvalidCertificates=True)
-db = client['jeet']
-collection = db['admin']
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return 'No file part'
 
-mongo = PyMongo(app, uri)
+    file = request.files['file']
 
-class Upload:
-    def __init__(self, filename, data):
-        self.filename = filename
-        self.data = data
+    if file.filename == '':
+        return 'No selected file'
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':
-        file = request.files['file']
-        filename = file.filename
-        data = file.read()
 
-        uploads_collection = collection
-        upload = Upload(filename, data)
-        result = uploads_collection.insert_one(upload.__dict__)
+    file.save(os.path.join(UPLOAD_FOLDER, file.filename))
 
-        if result.inserted_id:
-            return f'Uploaded: {filename}'
-        else:
-            return 'Failed to upload file'
-
-    return render_template('uploads.html')
+    return 'File uploaded successfully'
 
 if __name__ == '__main__':
-    app.run(debug=True, port=30)
+    app.run(debug=True)
