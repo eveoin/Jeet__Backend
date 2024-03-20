@@ -50,7 +50,7 @@ def send_otp_email(receiver_email, subject, body, otp):
     server.quit()
 
 def generate_reset_token(username):
-    reset_token = secrets.token_urlsafe(32)
+    reset_token = secrets.token_urlsafe(16)
     db.reset_tokens.insert_one({'user_username': username, 'token': reset_token})
     return reset_token
 
@@ -61,7 +61,7 @@ def send_reset_email(receiver_email, reset_token):
     send_otp_email(receiver_email, subject, body, otp=None)
 
 
-@app.route('/signup', methods=['POST'])
+@app.route('/api/signup', methods=['POST'])
 @csrf.exempt
 def signup():
     data = request.json
@@ -101,6 +101,10 @@ def signup():
 
         db.users.insert_one(new_user)
 
+        welcome_subject = 'Welcome to Our Service!'
+        welcome_message = f'Hello {first_name} {last_name},\n\nWelcome to our service!'
+        send_otp_email(email, welcome_subject, welcome_message, otp=None)
+
         reset_token = generate_reset_token(username)
 
         email_data = {
@@ -120,7 +124,7 @@ def signup():
         return jsonify({"error": "Username, password, email, mobile, and gender are required"}), 400
 
 
-@app.route('/login', methods=['POST'])
+@app.route('/api/login', methods=['POST'])
 @csrf.exempt
 def login():
     data = request.json
@@ -143,7 +147,7 @@ def login():
         return jsonify({"error": "Invalid username or password"}), 401
 
 
-@app.route('/verify_otp', methods=['POST'])
+@app.route('/api/verify_otp', methods=['POST'])
 @csrf.exempt
 def verify_otp():
     data = request.json
@@ -160,7 +164,7 @@ def verify_otp():
 
 
 
-@app.route('/get_profile/<username>', methods=['GET'])
+@app.route('/api/get_profile/<username>', methods=['GET'])
 @csrf.exempt
 def get_profile(username):
     existing_user = db.users.find_one({'username': username})
@@ -180,7 +184,7 @@ def get_profile(username):
         return jsonify({"error": "User not found"}), 404
 
 
-@app.route('/update_profile/<username>', methods=['PUT'])
+@app.route('/api/update_profile/<username>', methods=['PUT'])
 @csrf.exempt
 def update_profile(username):
     data = request.json
@@ -205,7 +209,7 @@ def update_profile(username):
 
 
 
-@app.route('/forgot_password', methods=['POST'])
+@app.route('/api/forgot_password', methods=['POST'])
 @csrf.exempt
 def forgot_password():
     data = request.json
@@ -214,7 +218,7 @@ def forgot_password():
     user = db.users.find_one({'username': username})
 
     if user:
-        reset_token = secrets.token_urlsafe(32)
+        reset_token = secrets.token_urlsafe(16)
 
         new_reset_token = {
             'user_username': user['username'],
@@ -233,7 +237,7 @@ def forgot_password():
 
 
 
-@app.route('/reset_password', methods=['POST'])
+@app.route('/api/reset_password', methods=['POST'])
 @csrf.exempt
 def reset_password():
     data = request.json
