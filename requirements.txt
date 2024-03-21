@@ -13,3 +13,5 @@ razorpay==1.4.1
 requests==2.31.0
 urllib3==2.2.0
 Werkzeug==3.0.1
+
+pymongo~=4.6.2
