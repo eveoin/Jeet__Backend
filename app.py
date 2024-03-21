@@ -1,16 +1,15 @@
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+from pymongo import MongoClient
+from tabulate import tabulate
 import json
 import os
 import smtplib
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-
 import razorpay
 from bson import json_util
-from flask import Flask, jsonify, request
-from flask_cors import CORS
-from pymongo import MongoClient
-from tabulate import tabulate
 
 app = Flask(__name__)
 CORS(app)
