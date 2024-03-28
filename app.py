@@ -2,10 +2,26 @@ import json
 import os
 import random
 import secrets
+import ssl
 import smtplib
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+
+from functools import wraps
+#from random import random
+from urllib.parse import urljoin
+
+import requests
+from flask import Flask, request, jsonify, session, redirect, abort
+from flask_jwt_extended import JWTManager
+from flask_pymongo import PyMongo
+from flask_wtf.csrf import CSRFProtect, generate_csrf
+from google.auth.transport.requests import Request
+from google.oauth2 import id_token
+from google_auth_oauthlib.flow import Flow
+from pymongo import MongoClient
+from pip._vendor import cachecontrol
 
 import razorpay
 from bson import json_util
@@ -18,6 +34,9 @@ from wtforms import csrf
 
 app = Flask(__name__)
 CORS(app)
+
+
+app.config['SECRET_KEY'] = '2WFMFM2ZaosK4p'
 
 client1 = MongoClient('mongodb+srv://jeetj:9FFVZMC6eU1qrson@jeetdb.trviwgp.mongodb.net/', tlsAllowInvalidCertificates=True)
 db = client1['jeet']
@@ -43,39 +62,60 @@ app.config['JWT_SECRET_KEY'] = 'dc6f8cf55952d4550b2a54a1a79b6398'
 
 csrf = CSRFProtect(app)
 
+otp = random.randint(1000, 9999)
 
-# Initialize waiting_list as an empty list
+
+GOOGLE_CLIENT_ID = "644210233864-vati2ld0o4mtem9gtf55lglsk02m0vff.apps.googleusercontent.com"
+client_secrets_file = os.path.join(os.path.dirname(__file__), "client_secret.json")
+
+
+os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+
+
+flow = Flow.from_client_secrets_file(
+    client_secrets_file=client_secrets_file,
+    scopes=["https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email", "openid"],
+    redirect_uri="http://127.0.0.1:443/callback"
+)
+
+def login_is_required(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        if "google_id" not in session:
+            return abort(401)
+        else:
+            return function(*args, **kwargs)
+
+    return wrapper
+
+
 waiting_list = []
 
-# Check if the file exists and is not empty
+
 if os.path.exists(data_file_path) and os.path.getsize(data_file_path) > 0:
-    # Load existing data from the JSON file
     with open(data_file_path, 'r') as json_file:
         loaded_data = json.load(json_file)
 
-        # Ensure the loaded data is a list
         if isinstance(loaded_data, list):
             waiting_list = loaded_data
 
 
-def send_email_notification(first_name, last_name, email, job_title, gender):
-    # Prepare email message
+def send_email_notification(first_name, last_name, email, job_title,mobile, gender):
     message = MIMEMultipart()
     message['From'] = EMAIL_SENDER
     message['To'] = 'etemp7354@gmail.com'  # Replace with recipient email
     message['Subject'] = 'New Job Application'
 
-    # Create table with job application data
     table_data = [
         ["First Name:", first_name],
         ["Last Name:", last_name],
         ["Email:", email],
         ["Job Title:", job_title],
+        ["Phone Number:", mobile],
         ["Gender:", gender]
     ]
     table = tabulate(table_data, tablefmt="html")
 
-    # Email body
     body = f"""
     <html>
     <head></head>
@@ -87,22 +127,18 @@ def send_email_notification(first_name, last_name, email, job_title, gender):
     """
     message.attach(MIMEText(body, 'html'))
 
-    # Attach resume file
     with open(f'resumes/{first_name}_{last_name}_resume.pdf', 'rb') as attachment:
         part = MIMEBase('application', 'octet-stream')
         part.set_payload(attachment.read())
     part.add_header('Content-Disposition', f'attachment; filename={first_name}_{last_name}_resume.pdf')
     message.attach(part)
 
-    # Connect to Zoho SMTP server
     server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
     server.starttls()
     server.login(EMAIL_SENDER, EMAIL_PASSWORD)
 
-    # Send email
     server.send_message(message)
 
-    # Quit SMTP server
     server.quit()
 
     os.remove(f'resumes/{first_name}_{last_name}_resume.pdf')
@@ -110,7 +146,6 @@ def send_email_notification(first_name, last_name, email, job_title, gender):
 
 
 def send_otp_email(receiver_email, subject, body, otp):
-    # Zoho Mail SMTP Configuration
     smtp_server = 'smtppro.zoho.in'
     smtp_port = 587
     smtp_username = 'jeet.j@buone.in'
@@ -142,6 +177,8 @@ def send_reset_email(receiver_email, reset_token):
     body = f'Click the following link to reset your password: http://your-reset-url/    {reset_token}'
     send_otp_email(receiver_email, subject, body, otp=None)
 
+
+
 @app.route('/api/show_data', methods=['GET'])
 def show_data():
     try:
@@ -158,7 +195,6 @@ def store_data():
     first_name = request.form.get('firstName')
     last_name = request.form.get('lastName')
 
-    # Check if first_name and last_name are provided
     if first_name is None or last_name is None:
         return jsonify({"error": "First name and last name are required"}), 400
 
@@ -168,7 +204,6 @@ def store_data():
     job_title = request.form.get('jobTitle')
     gender = request.form.get('gender')
 
-    # Save resume file
     resume = request.files.get('resume')
 
     if resume:
@@ -184,8 +219,7 @@ def store_data():
     }
     collection.insert_one(job_data)
 
-    # Send email notification
-    send_email_notification(first_name, last_name, email, job_title, gender)
+    send_email_notification(first_name, last_name, email, job_title,mobile, gender)
 
     return jsonify({"message": "Data stored successfully"}), 200
 
@@ -211,10 +245,56 @@ def add_to_waiting_list():
         # 'paymentId': data['paymentId']
     })
 
-    # Save the updated data back to the JSON file
     with open(data_file_path, 'w') as json_file:
         json.dump(waiting_list, json_file, indent=2)
     return jsonify({})
+
+
+
+
+@app.route("/login")
+def login():
+    authorization_url, state = flow.authorization_url()
+    session["state"] = state
+    return redirect(authorization_url)
+
+@app.route("/callback")
+def callback():
+    flow.fetch_token(authorization_response=request.url)
+    if not session["state"] == request.args["state"]:
+        abort(500)
+    credentials = flow.credentials
+    request_session = requests.session()
+    cached_session = cachecontrol.CacheControl(request_session)
+    token_request = Request(session=cached_session)
+
+    id_info = id_token.verify_oauth2_token(
+        id_token=credentials._id_token,
+        request=token_request,
+        audience=GOOGLE_CLIENT_ID
+    )
+
+    session["google_id"] = id_info.get("sub")
+    session["name"] = id_info.get("name")
+    return redirect("/protected_area")
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
+
+
+@app.route("/")
+def index():
+    return "Hello World <a href='/login'><button>Login</button></a>"
+
+
+@app.route("/protected_area")
+@login_is_required
+def protected_area():
+    return f"Hello {session['name']}! <br/> <a href='/logout'><button>Logout</button></a>"
+
 
 
 
@@ -229,13 +309,14 @@ def signup():
     last_name = data.get('last_name')
     mobile = data.get('mobile')
     email = data.get('email')
+    date_of_birth = data.get('date_of_birth')
     gender = data.get('gender')
 
     if password != confirm_password:
         return jsonify({"error": "Password and confirm password do not match"}), 400
 
 
-    if username and password and first_name and last_name and email and mobile and gender:
+    if username and password and first_name and last_name and email and mobile and date_of_birth and gender:
         existing_user = db.users.find_one({'username': username})
 
 
@@ -252,14 +333,15 @@ def signup():
             'last_name': last_name,
             'email': email,
             'mobile': mobile,
+            'date_of_birth': date_of_birth,
             'gender': gender,
             'otp': None
         }
 
         db.users.insert_one(new_user)
 
-        welcome_subject = 'Welcome to Our Service!'
-        welcome_message = f'Hello {first_name} {last_name},\n\nWelcome to our service!'
+        welcome_subject = 'Welcome to EVEO'
+        welcome_message = f'Hello {first_name} {last_name},\n\nWelcome to our service !'
         send_otp_email(email, welcome_subject, welcome_message, otp=None)
 
         reset_token = generate_reset_token(username)
@@ -278,12 +360,12 @@ def signup():
         return response, 200
 
     else:
-        return jsonify({"error": "Username, password, email, mobile, and gender are required"}), 400
+        return jsonify({"error": "Username, password, email, mobile, date_of_birth, and gender are required"}), 400
 
 
 @app.route('/api/login', methods=['POST'])
 @csrf.exempt
-def login():
+def login_user():
     data = request.json
     username = data.get('username')
     password = data.get('password')
@@ -334,6 +416,7 @@ def get_profile(username):
             'last_name': existing_user['last_name'],
             'email': existing_user['email'],
             'mobile': existing_user['mobile'],
+            'date_of_birth': existing_user['date_of_birth'],
             'gender': existing_user['gender']
         }
         return jsonify(user_profile), 200
@@ -355,6 +438,7 @@ def update_profile(username):
             'last_name': data.get('last_name', existing_user['last_name']),
             'email': data.get('email', existing_user['email']),
             'mobile': data.get('mobile', existing_user['mobile']),
+            'date_of_birth': data.get('date_of_birth', existing_user['date_of_birth']),
             'gender': data.get('gender', existing_user['gender']),
         }
 
